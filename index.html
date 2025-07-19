@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pemroses Data Teks ke File</title>
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat library JSZip untuk fungsionalitas zip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Menggunakan font Inter untuk tampilan yang lebih baik */
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      /* Style untuk scrollbar agar lebih modern */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+      <!-- Header Aplikasi -->
+      <header class="text-center mb-8">
+        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">
+          Pemroses Data Teks
+        </h1>
+        <p class="mt-2 text-md text-gray-600">
+          Ubah data mentah menjadi beberapa file .txt dengan mudah.
+        </p>
+      </header>
+
+      <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+        <!-- Langkah 1: Input Data -->
+        <div>
+          <label
+            for="dataInput"
+            class="block text-lg font-semibold mb-2 text-gray-700"
+            >1. Tempelkan Data Anda di Sini</label
+          >
+          <textarea
+            id="dataInput"
+            rows="12"
+            class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+            placeholder="Contoh:&#10;Nama File: Gonggg.a.26.jpg&#10;Tipe: Onomatopoeia&#10;Warna: hijau&#10;...&#10;---"
+          ></textarea>
+        </div>
+
+        <!-- Tombol Aksi -->
+        <div class="text-center my-6">
+          <button
+            id="processButton"
+            class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-transform transform hover:scale-105 duration-300 ease-in-out"
+          >
+            Proses & Siapkan Unduhan
+          </button>
+        </div>
+
+        <!-- Langkah 2: Hasil & Unduhan -->
+        <div id="resultsContainer" class="mt-8">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">
+            2. Hasil Pemrosesan
+          </h2>
+          <div id="fileList" class="space-y-3">
+            <!-- Pesan awal akan ditampilkan di sini -->
+            <p class="text-gray-500 text-center py-4">
+              Hasil akan ditampilkan di sini setelah data diproses.
+            </p>
+          </div>
+          <div id="downloadAllContainer" class="text-center mt-6 hidden">
+            <button
+              id="downloadAllButton"
+              class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105 duration-300 ease-in-out"
+            >
+              Unduh Semua sebagai .zip
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer class="text-center mt-8 text-sm text-gray-500">
+        <p>Dibuat dengan HTML, Tailwind CSS, dan JavaScript.</p>
+      </footer>
+    </div>
+
+    <script>
+      // Mengambil elemen-elemen dari DOM
+      const dataInput = document.getElementById("dataInput");
+      const processButton = document.getElementById("processButton");
+      const fileList = document.getElementById("fileList");
+      const downloadAllContainer = document.getElementById(
+        "downloadAllContainer"
+      );
+      const downloadAllButton = document.getElementById("downloadAllButton");
+
+      // Menyimpan hasil pemrosesan untuk diunduh nanti
+      let processedFiles = [];
+
+      // Event listener untuk tombol proses
+      processButton.addEventListener("click", () => {
+        const rawData = dataInput.value;
+        if (!rawData.trim()) {
+          alert("Area input data tidak boleh kosong!");
+          return;
+        }
+
+        // Membersihkan hasil sebelumnya
+        fileList.innerHTML = "";
+        processedFiles = [];
+
+        // Memisahkan data menjadi beberapa rekaman berdasarkan '---'
+        const records = rawData.trim().split("---");
+
+        records.forEach((record, index) => {
+          record = record.trim();
+          if (!record) return;
+
+          const lines = record.split("\n");
+          let outputFilename = "";
+          const values = [];
+
+          lines.forEach((line) => {
+            if (line.includes(":")) {
+              const [key, ...valueParts] = line.split(":");
+              const value = valueParts.join(":").trim();
+
+              if (key.trim() === "Nama File") {
+                const baseName = value.replace(/\.jpg$/i, ""); // Menghapus ekstensi .jpg (case-insensitive)
+                const cleanName = baseName.replace(/\./g, "_"); // Mengganti semua titik dengan garis bawah
+                outputFilename = `caption-${cleanName}.txt`;
+              } else {
+                values.push(value);
+              }
+            }
+          });
+
+          if (outputFilename && values.length > 0) {
+            const outputContent = values.join(", ");
+            processedFiles.push({
+              name: outputFilename,
+              content: outputContent,
+            });
+
+            // Membuat elemen untuk menampilkan hasil di UI
+            const fileEntry = document.createElement("div");
+            fileEntry.className =
+              "flex items-center justify-between bg-gray-50 p-3 rounded-lg border";
+
+            const fileNameSpan = document.createElement("span");
+            fileNameSpan.className = "font-mono text-sm text-gray-800";
+            fileNameSpan.textContent = outputFilename;
+
+            const downloadLink = document.createElement("a");
+            downloadLink.className =
+              "bg-white border border-gray-300 text-gray-700 text-sm font-semibold py-1 px-4 rounded-md hover:bg-gray-100 transition duration-200";
+            downloadLink.textContent = "Unduh";
+            downloadLink.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
+              outputContent
+            )}`;
+            downloadLink.download = outputFilename;
+
+            fileEntry.appendChild(fileNameSpan);
+            fileEntry.appendChild(downloadLink);
+            fileList.appendChild(fileEntry);
+          }
+        });
+
+        // Menampilkan tombol "Unduh Semua" jika ada file yang diproses
+        if (processedFiles.length > 0) {
+          downloadAllContainer.classList.remove("hidden");
+        } else {
+          fileList.innerHTML =
+            '<p class="text-gray-500 text-center py-4">Tidak ada data valid yang ditemukan untuk diproses.</p>';
+          downloadAllContainer.classList.add("hidden");
+        }
+      });
+
+      // Event listener untuk tombol unduh semua
+      downloadAllButton.addEventListener("click", () => {
+        if (processedFiles.length === 0) {
+          alert("Tidak ada file untuk diunduh.");
+          return;
+        }
+
+        const zip = new JSZip();
+
+        // Menambahkan setiap file ke dalam zip
+        processedFiles.forEach((file) => {
+          zip.file(file.name, file.content);
+        });
+
+        // Membuat file zip dan memicu unduhan
+        zip.generateAsync({ type: "blob" }).then(function (content) {
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(content);
+          link.download = "semua_caption.zip";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      });
+    </script>
+  </body>
+</html>
