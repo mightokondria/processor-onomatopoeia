@@ -145,7 +145,7 @@
               if (key.trim() === "Nama File") {
                 const baseName = value.replace(/\.jpg$/i, ""); // Menghapus ekstensi .jpg (case-insensitive)
                 const cleanName = baseName.replace(/\./g, "_"); // Mengganti semua titik dengan garis bawah
-                outputFilename = `caption-${cleanName}.txt`;
+                outputFilename = `caption_${cleanName}.txt`;
               } else {
                 values.push(value);
               }
